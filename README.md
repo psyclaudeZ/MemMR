@@ -2,3 +2,12 @@ MemMR
 =====
 
 An in-memory implementation of MapReduce.
+
+## Tools
+* C/C++
+* pthread
+
+## References
+* [Phoenix Project](http://mapreduce.stanford.com) by Stanford University (site
+currently down).
+* The original [MapReduce](http://research.google.com/archive/mapreduce.html).
