@@ -6,6 +6,7 @@ An in-memory implementation of MapReduce.
 ## Tools
 * C/C++
 * pthread
+* boost
 
 ## References
 * [Phoenix Project](http://mapreduce.stanford.com) by Stanford University (site
