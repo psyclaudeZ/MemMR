@@ -22,7 +22,6 @@ protected:
   }
 
   virtual bool reduce(std::vector<KV> kvs, Data& data) { 
-    //puts("Original reducer");
     int sz = kvs.size();
     if (sz != 0) {
       std::ostringstream oss;
@@ -52,27 +51,27 @@ public:
     }
 
     for (int i = kvs.size() - 1; i >= 0; --i) {
-      printf("Loop 2: %d\n", i);
+      //printf("Loop 2: %d\n", i);
       Key k = kvs[i].first;
       Value v = kvs[i].second;
-      std::cout << k << "-" << v << std::endl;
+
       int reducerID = (getHash(k) % nReduce + nReduce) % nReduce + nMap;
 
 //      std::cout << "Hash: " << getHash(k) % nReduce<< std::endl;
-  //    std::cout << " nmap, nreduce: " << nMap << " " << nReduce << std::endl;
-      std::cout << "ReducerID: " << reducerID << std::endl;
+      //std::cout << "ReducerID: " << reducerID << std::endl;
 
       pthread_mutex_lock(&locks[reducerID]);
       if (getKeyIndex[reducerID].find(k) == getKeyIndex[reducerID].end()) {
         getKeyIndex[reducerID][k] = std::vector<KV>();
       }
 
-      printf("Loop 222222222222222: %d\n", reducerID);
+      //printf("Loop 222222222222222: %d\n", reducerID);
 
+      //std::cout << kvs[i].first << std::endl;
       getKeyIndex[reducerID][k].push_back(kvs[i]);
       pthread_mutex_unlock(&locks[reducerID]);
 
-      printf("Loop end: %d\n", i);
+      //printf("Loop end: %d\n", i);
     }
     return NULL;
   }

@@ -30,7 +30,7 @@ public:
       args.push_back(Args(i));
       workers[i] = w;
     }
-    for (int i = 0; i < nReduce; ++i) {
+    for (int i = 0; i < n; ++i) {
       pthread_mutex_init(&locks[i], NULL);
     }
   }

@@ -21,7 +21,7 @@ int main(int argc, char* argv[]) {
     exit(-1);
   }
   MyWorker myW;
-  MapReduce mr(2, 2, argv[1], myW);
+  MapReduce mr(32, 32, argv[1], myW);
   if (mr.runMaster()) {
     puts("DONE");
     std::vector<Data> out = mr.getResults();
