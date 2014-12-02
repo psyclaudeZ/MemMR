@@ -2,35 +2,40 @@
 #define __MEMMR_CORE__
 
 #include "common.h"
+#include "worker.h"
 
+class Worker;
 class MapReduce {
 protected:
   int nMap, nReduce, n;
   std::ifstream file;
-  std::vector<Args> args;
   std::vector<Data> out;
 
-  pthread_t workers[MAXTHREAD];
+  Worker workers[MAXTHREAD];
+  pthread_t threads[MAXTHREAD];
 
 public:
-  MRManager() {
+  MapReduce() {
     n = nMap = nReduce = 0;
   }
 
-  MRManager(int m, int r, std::string f) {
+  MapReduce(int m, int r, std::string f, Worker w) {
     nMap = m;
     nReduce = r;
     n = m + r;
     out.clear();
     args.clear();
-    file.open(f);
+    file.open(f.c_str());
     for (int i = 0; i < n; ++i) {
       args.push_back(Args(i));
+      workers[i] = w;
     }
-
+    for (int i = 0; i < nReduce; ++i) {
+      pthread_mutex_init(&locks[i], NULL);
+    }
   }
 
-  ~MRManager() {
+  ~MapReduce() {
     if (file.is_open()) {
       file.close();
     }
@@ -46,16 +51,22 @@ public:
       return false;
     }
 
+
     puts("MRManager - start mapping.");
     for (int i = 0; i < nMap; ++i) {
-      if (pthread_create(&workers[i], NULL, map, (void*)args[i])) {
+      wraps[i].id = i;
+      wraps[i].nMap = nMap;
+      wraps[i].nReduce = nReduce;
+      wraps[i].worker = &workers[i];
+
+      if (pthread_create(&threads[i], NULL, &Worker::MapEntryFunc, (void*)&wraps[i])) {
         puts("MRManager - cannot initialize thread.");
         return false;
       }
     }
 
     for (int i = 0; i < nMap; ++i) {
-      if (pthread_join(workers[i], NULL)) {
+      if (pthread_join(threads[i], NULL)) {
         puts("MRManager - cannot join thread.");
         return false;
       }
@@ -63,21 +74,29 @@ public:
 
     puts("MRManager - start reducing.");
     for (int i = nMap; i < n; ++i) {
-      if (pthread_create(&workers[i], NULL, reduce, (void*)args[i])) {
+      wraps[i].id = i;
+      wraps[i].nMap = nMap;
+      wraps[i].nReduce = nReduce;
+      wraps[i].worker = &workers[i];
+
+      if (pthread_create(&threads[i], NULL, &Worker::ReduceEntryFunc, (void*)&wraps[i])) {
         puts("MRManager - cannot initialize thread.");
         return false;
       }
     }
 
     for (int i = nMap; i < n; ++i) {
-      if (pthread_join(workers[i], NULL)) {
+      if (pthread_join(threads[i], NULL)) {
         puts("MRManager - cannot join thread.");
         return false;
       }
     }
 
     for (int i = nMap; i < n; ++i) {
-      out.push_back(args[i].data);
+      std::vector<Data> d = args[i].data;
+      for (int j = d.size() - 1; j >= 0; --j) {
+        out.push_back(d[j]);
+      }
     }
 
     return true;
@@ -94,35 +113,30 @@ public:
 
     // get all lines and get the number of lines implicitly
     std::vector<std::string> input;
-    while (file) {
-      std::string buf;
-      getline(file, buf);
+    std::string buf;
+    while (getline(file, buf)) {
       input.push_back(buf);
     }
 
-    int sz = input.size(), idx = 0, id = 0;
+    int sz = input.size(), load = sz % nMap == 0 ? sz / nMap : sz / nMap + 1, idx = 0, id = 0;
+    //std::cout << "SIZE: " << load << std::endl;
     for (int i = 0; i < sz; ++i) {
-      std::istringstream iss(buf[i]);
+      std::istringstream iss(input[i]);
       std::string token;
+      Data dataBuf;
       while (iss >> token) {
-        args[id].data[idx].push_back(token);
+        //std::cout << "TOKEN: " << token << 
+         // " ID: " << id << std::endl;
+        dataBuf.push_back(token);
       }
-      if (++idx == nMap) {
+      args[id].data.push_back(dataBuf);
+      if (++idx == load) {
         ++id;
         idx = 0;
       }
     }
-    
+
     return true;
   }
-
-  virtual bool map(Arg args) {
-    return true;
-  }
-
-  virtual bool reduce(Arg args) { 
-    return true;
-  }
-}
-
+};
 #endif

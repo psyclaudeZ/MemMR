@@ -16,31 +16,44 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include <boost/functional/hash.hpp>
+
 const int MAXTHREAD = 1 << 8;
+const int MAXSPACE = 1 << 8;
 
-typedef Key std::string;
-typedef Value std::string;
-typedef Data std::vector<std::string>;
+typedef std::string Key;
+typedef std::string Value;
+typedef std::vector<std::string> Data;
 
-typedef pair<Key, Value> KV;
+typedef std::pair<Key, Value> KV;
+
+typedef struct ARGSWRAPPER {
+  void* worker;
+  int id, nMap, nReduce;
+} Wrap;
 
 typedef struct ARGS {
   int id;
-  std::vector<KV> kvs;
+  std::vector<std::vector<KV> > kvs;
   std::vector<Data> data;
 
   ARGS() {
     id = -1;
-    kvs = std::vector<KV>();
-    data = std::vector<Data>();
+    kvs = std::vector<std::vector<KV> >(MAXSPACE, std::vector<KV>());
   }
 
   ARGS(int i) {
     id = i;
-    kvs = std::vector<KV>();
-    data = std::vector<Data>();
+    kvs = std::vector<std::vector<KV> >(MAXSPACE, std::vector<KV>());
   }
 
 } Args;
+
+std::vector<Args> args;
+pthread_mutex_t locks[MAXTHREAD];
+std::map<std::string, std::vector<KV> > getKeyIndex[MAXTHREAD];
+Wrap wraps[MAXTHREAD];
+
+
 
 #endif
